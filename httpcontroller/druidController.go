@@ -13,7 +13,7 @@ func NewDruidController() *DruidController {
 }
 
 func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
-	report := r.URL.Query().Get("report")
+	report := r.URL.Query()
 
 	fmt.Println(report)
 
