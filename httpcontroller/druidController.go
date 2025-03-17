@@ -5,6 +5,7 @@ import (
 	"fmt"
 	appContext "go-druid-client/context"
 	"net/http"
+	"strconv"
 )
 
 type DruidController struct{}
@@ -14,7 +15,7 @@ func NewDruidController() *DruidController {
 }
 
 func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
-	params := d.PrepareParams(r.URL.Query())
+	params := d.PrepareParams(r)
 
 	fmt.Println(params)
 
@@ -32,11 +33,13 @@ func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 	w.Write(statusJson)
 }
 
-func (d DruidController) PrepareParams(query map[string][]string) appContext.InputParams {
-
-	fmt.Println(query)
+func (d DruidController) PrepareParams(r *http.Request) appContext.InputParams {
+	dateStart, _ := strconv.Atoi(r.URL.Query().Get("dateStart"))
+	dateEnd, _ := strconv.Atoi(r.URL.Query().Get("dateEnd"))
 
 	return appContext.InputParams{
 		PmCategory: 100,
+		DateStart:  int32(dateStart),
+		DateEnd:    int32(dateEnd),
 	}
 }
