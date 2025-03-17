@@ -1,12 +1,13 @@
 package context
 
 type InputParams struct {
+	Report      string
 	Pm          int
 	PmCategory  int
-	Site        []int
-	Category    []int
-	Source      []int
-	Channel     []int
+	Site        int
+	Category    []string
+	Source      []string
+	Channel     []string
 	DateStart   int32
 	DateEnd     int32
 	Granulation string

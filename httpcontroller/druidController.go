@@ -36,10 +36,18 @@ func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 func (d DruidController) PrepareParams(r *http.Request) appContext.InputParams {
 	dateStart, _ := strconv.Atoi(r.URL.Query().Get("dateStart"))
 	dateEnd, _ := strconv.Atoi(r.URL.Query().Get("dateEnd"))
+	pm, _ := strconv.Atoi(r.URL.Query().Get("pm"))
+	pmCategory, _ := strconv.Atoi(r.URL.Query().Get("pmCategory"))
+	site, _ := strconv.Atoi(r.URL.Query().Get("site"))
 
 	return appContext.InputParams{
-		PmCategory: 100,
-		DateStart:  int32(dateStart),
-		DateEnd:    int32(dateEnd),
+		PmCategory:  pmCategory,
+		Pm:          pm,
+		Site:        site,
+		DateStart:   int32(dateStart),
+		DateEnd:     int32(dateEnd),
+		Report:      r.URL.Query().Get("report"),
+		Granulation: r.URL.Query().Get("granulation"),
+		Channel:     r.URL.Query()["channel[]"],
 	}
 }
