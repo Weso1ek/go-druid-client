@@ -3,6 +3,7 @@ package httpcontroller
 import (
 	"encoding/json"
 	"fmt"
+	appContext "go-druid-client/context"
 	"net/http"
 )
 
@@ -13,9 +14,9 @@ func NewDruidController() *DruidController {
 }
 
 func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
-	report := r.URL.Query()
+	params := d.PrepareParams(r.URL.Query())
 
-	fmt.Println(report)
+	fmt.Println(params)
 
 	var status = map[string]string{
 		"status": "ok",
@@ -29,4 +30,13 @@ func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write(statusJson)
+}
+
+func (d DruidController) PrepareParams(query map[string][]string) appContext.InputParams {
+
+	fmt.Println(query)
+
+	return appContext.InputParams{
+		PmCategory: 100,
+	}
 }
