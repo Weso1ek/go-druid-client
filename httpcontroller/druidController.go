@@ -3,8 +3,10 @@ package httpcontroller
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/grafadruid/go-druid"
 	appContext "go-druid-client/context"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -17,7 +19,7 @@ func NewDruidController() *DruidController {
 func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 	params := d.PrepareParams(r)
 
-	fmt.Println(params)
+	d.DruidQuery(params)
 
 	var status = map[string]string{
 		"status": "ok",
@@ -31,6 +33,73 @@ func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write(statusJson)
+}
+
+func (d DruidController) DruidQuery(params appContext.InputParams) []byte {
+	query := `{
+		  "queryType": "groupBy",
+		  "dataSource": {
+			"type": "table",
+			"name": "double-sketch"
+		  },
+		  "granularity": "ALL",
+		  "dimensions": [
+			{
+			  "type": "default",
+			  "dimension": "uniqueId"
+			}
+		  ],
+		  "aggregations": [
+			{
+			  "type": "quantilesDoublesSketch",
+			  "name": "a1:agg",
+			  "fieldName": "latencySketch",
+			  "k": 128
+			}
+		  ],
+		  "postAggregations": [
+			{
+			  "type": "quantilesDoublesSketchToQuantile",
+			  "name": "tp90",
+			  "fraction": 0.9,
+			  "field": {
+				"type": "fieldAccess",
+				"name": "tp90",
+				"fieldName": "a1:agg"
+			  }
+			}
+		  ],
+		  "intervals": {
+			"type": "intervals",
+			"intervals": [
+			  "-146136543-09-08T08:23:32.096Z/146140482-04-24T15:36:27.903Z"
+			]
+		  }
+		}`
+
+	return []byte(query)
+}
+
+func (d DruidController) DruidRequest(query []byte) {
+	host := os.Getenv("DRUID_HOST")
+
+	client, err := druid.NewClient("http://" + host + "/druid/v2/")
+
+	if err != nil {
+		fmt.Println("Druid error ", err)
+	}
+
+	fmt.Println(client)
+
+	//q, err := d.Query().Load([]byte(query))
+	//if err != nil {
+	//	log.Fatalf("converting string to query object failed, %s", err)
+	//}
+	//
+	//resp, err := d.Query().Execute(q, &results)
+
+	client.Close()
+
 }
 
 func (d DruidController) PrepareParams(r *http.Request) appContext.InputParams {
