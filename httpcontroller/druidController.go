@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/grafadruid/go-druid"
+	druidBuilder "github.com/grafadruid/go-druid/builder"
+	druidAggregation "github.com/grafadruid/go-druid/builder/aggregation"
 	druidDs "github.com/grafadruid/go-druid/builder/datasource"
 	druidGranularity "github.com/grafadruid/go-druid/builder/granularity"
-	"github.com/grafadruid/go-druid/builder/query"
 	druidQuery "github.com/grafadruid/go-druid/builder/query"
 	appContext "go-druid-client/context"
 	"net/http"
@@ -23,7 +24,7 @@ func NewDruidController() *DruidController {
 func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 	params := d.PrepareParams(r)
 
-	d.PrepareDruidQuery(params)
+	d.DruidRequest(params)
 
 	var status = map[string]string{
 		"status": "ok",
@@ -39,60 +40,9 @@ func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 	w.Write(statusJson)
 }
 
-func (d DruidController) PrepareDruidQuery(params appContext.InputParams) []byte {
-	datasource := os.Getenv("DRUID_DS")
-
-	table := druidDs.NewTable().SetName(datasource)
-	granulation := druidGranularity.NewSimple().SetGranularity(params.Granulation)
-
-	ts := druidQuery.NewTimeseries().SetDataSource(table)
-
-	q := `{
-		  "queryType": "groupBy",
-		  "dataSource": {
-			"type": "table",
-			"name": "double-sketch"
-		  },
-		  "granularity": "ALL",
-		  "dimensions": [
-			{
-			  "type": "default",
-			  "dimension": "uniqueId"
-			}
-		  ],
-		  "aggregations": [
-			{
-			  "type": "quantilesDoublesSketch",
-			  "name": "a1:agg",
-			  "fieldName": "latencySketch",
-			  "k": 128
-			}
-		  ],
-		  "postAggregations": [
-			{
-			  "type": "quantilesDoublesSketchToQuantile",
-			  "name": "tp90",
-			  "fraction": 0.9,
-			  "field": {
-				"type": "fieldAccess",
-				"name": "tp90",
-				"fieldName": "a1:agg"
-			  }
-			}
-		  ],
-		  "intervals": {
-			"type": "intervals",
-			"intervals": [
-			  "-146136543-09-08T08:23:32.096Z/146140482-04-24T15:36:27.903Z"
-			]
-		  }
-		}`
-
-	return []byte(q)
-}
-
-func (d DruidController) DruidRequest(query []byte) {
+func (d DruidController) DruidRequest(params appContext.InputParams) {
 	host := os.Getenv("DRUID_HOST")
+	datasource := os.Getenv("DRUID_DS")
 
 	client, err := druid.NewClient("http://" + host + "/druid/v2/")
 
@@ -101,6 +51,19 @@ func (d DruidController) DruidRequest(query []byte) {
 	}
 
 	fmt.Println(client)
+
+	table := druidDs.NewTable().SetName(datasource)
+	granulation := druidGranularity.NewSimple().SetGranularity(params.Granulation)
+
+	ads := druidAggregation.NewHLLSketchMerge().SetName("uu").SetFieldName("unique")
+	a := []druidBuilder.Aggregator{ads}
+
+	ts := druidQuery.NewTimeseries().
+		SetDataSource(table).
+		SetGranularity(granulation).
+		SetAggregations(a)
+
+	fmt.Println(ts)
 
 	//q, err := d.Query().Load([]byte(query))
 	//if err != nil {
