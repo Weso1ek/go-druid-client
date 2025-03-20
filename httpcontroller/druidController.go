@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/grafadruid/go-druid"
+	druidDs "github.com/grafadruid/go-druid/builder/datasource"
+	druidGranularity "github.com/grafadruid/go-druid/builder/granularity"
+	"github.com/grafadruid/go-druid/builder/query"
+	druidQuery "github.com/grafadruid/go-druid/builder/query"
 	appContext "go-druid-client/context"
 	"net/http"
 	"os"
@@ -19,7 +23,7 @@ func NewDruidController() *DruidController {
 func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 	params := d.PrepareParams(r)
 
-	d.DruidQuery(params)
+	d.PrepareDruidQuery(params)
 
 	var status = map[string]string{
 		"status": "ok",
@@ -35,8 +39,15 @@ func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 	w.Write(statusJson)
 }
 
-func (d DruidController) DruidQuery(params appContext.InputParams) []byte {
-	query := `{
+func (d DruidController) PrepareDruidQuery(params appContext.InputParams) []byte {
+	datasource := os.Getenv("DRUID_DS")
+
+	table := druidDs.NewTable().SetName(datasource)
+	granulation := druidGranularity.NewSimple().SetGranularity(params.Granulation)
+
+	ts := druidQuery.NewTimeseries().SetDataSource(table)
+
+	q := `{
 		  "queryType": "groupBy",
 		  "dataSource": {
 			"type": "table",
@@ -77,7 +88,7 @@ func (d DruidController) DruidQuery(params appContext.InputParams) []byte {
 		  }
 		}`
 
-	return []byte(query)
+	return []byte(q)
 }
 
 func (d DruidController) DruidRequest(query []byte) {
@@ -116,7 +127,7 @@ func (d DruidController) PrepareParams(r *http.Request) appContext.InputParams {
 		DateStart:   int32(dateStart),
 		DateEnd:     int32(dateEnd),
 		Report:      r.URL.Query().Get("report"),
-		Granulation: r.URL.Query().Get("granulation"),
+		Granulation: druidGranularity.Day,
 		Channel:     r.URL.Query()["channel[]"],
 	}
 }
