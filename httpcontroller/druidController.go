@@ -7,6 +7,7 @@ import (
 	druidBuilder "github.com/grafadruid/go-druid/builder"
 	druidAggregation "github.com/grafadruid/go-druid/builder/aggregation"
 	druidDs "github.com/grafadruid/go-druid/builder/datasource"
+	druidFilter "github.com/grafadruid/go-druid/builder/filter"
 	druidGranularity "github.com/grafadruid/go-druid/builder/granularity"
 	druidQuery "github.com/grafadruid/go-druid/builder/query"
 	appContext "go-druid-client/context"
@@ -57,6 +58,13 @@ func (d DruidController) DruidRequest(params appContext.InputParams) {
 
 	ads := druidAggregation.NewHLLSketchMerge().SetName("uu").SetFieldName("unique")
 	a := []druidBuilder.Aggregator{ads}
+
+	filterSite := druidFilter.NewSelector().SetDimension("site").SetValue(strconv.Itoa(params.Site))
+
+	filterBotDimension := druidFilter.NewSelector().SetDimension("bot").SetValue("isrobot")
+	filterBot := druidFilter.NewNot().SetField(filterBotDimension)
+
+	filter := druidFilter.NewAnd().
 
 	ts := druidQuery.NewTimeseries().
 		SetDataSource(table).
