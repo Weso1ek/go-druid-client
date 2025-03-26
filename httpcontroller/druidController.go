@@ -64,12 +64,13 @@ func (d DruidController) DruidRequest(params appContext.InputParams) {
 	filterBotDimension := druidFilter.NewSelector().SetDimension("bot").SetValue("isrobot")
 	filterBot := druidFilter.NewNot().SetField(filterBotDimension)
 
-	filter := druidFilter.NewAnd().
+	filter := druidFilter.NewAnd().SetFields([]druidBuilder.Filter{filterSite, filterBot})
 
 	ts := druidQuery.NewTimeseries().
 		SetDataSource(table).
 		SetGranularity(granulation).
-		SetAggregations(a)
+		SetAggregations(a).
+		SetFilter(filter)
 
 	fmt.Println(ts)
 
