@@ -59,12 +59,28 @@ func (d DruidController) DruidRequest(params appContext.InputParams) {
 	ads := druidAggregation.NewHLLSketchMerge().SetName("uu").SetFieldName("unique")
 	a := []druidBuilder.Aggregator{ads}
 
+	// site condition
 	filterSite := druidFilter.NewSelector().SetDimension("site").SetValue(strconv.Itoa(params.Site))
 
+	// bot condition
 	filterBotDimension := druidFilter.NewSelector().SetDimension("bot").SetValue("isrobot")
 	filterBot := druidFilter.NewNot().SetField(filterBotDimension)
 
-	filter := druidFilter.NewAnd().SetFields([]druidBuilder.Filter{filterSite, filterBot})
+	// pos filter
+	filterPosEmpty := druidFilter.NewSelector().SetDimension("pos").SetValue("")
+	filterPosT := druidFilter.NewSelector().SetDimension("pos").SetValue("T")
+	filterPosF := druidFilter.NewSelector().SetDimension("pos").SetValue("F")
+
+	filterPos := druidFilter.NewOr().SetFields([]druidBuilder.Filter{filterPosEmpty, filterPosT, filterPosF})
+
+	// filter channel
+	filterChannel1 := druidFilter.NewSelector().SetDimension("channel").SetValue("1")
+	filterChannel2 := druidFilter.NewSelector().SetDimension("channel").SetValue("2")
+	filterChannel3 := druidFilter.NewSelector().SetDimension("channel").SetValue("3")
+
+	filterChannel := druidFilter.NewOr().SetFields([]druidBuilder.Filter{filterChannel1, filterChannel2, filterChannel3})
+
+	filter := druidFilter.NewAnd().SetFields([]druidBuilder.Filter{filterSite, filterBot, filterPos, filterChannel})
 
 	ts := druidQuery.NewTimeseries().
 		SetDataSource(table).
