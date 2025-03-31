@@ -9,6 +9,7 @@ import (
 	druidDs "github.com/grafadruid/go-druid/builder/datasource"
 	druidFilter "github.com/grafadruid/go-druid/builder/filter"
 	druidGranularity "github.com/grafadruid/go-druid/builder/granularity"
+	"log"
 	"time"
 
 	druidIn "github.com/grafadruid/go-druid/builder/intervals"
@@ -45,16 +46,13 @@ func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d DruidController) DruidRequest(params appContext.InputParams) {
-	host := os.Getenv("DRUID_HOST")
-	datasource := os.Getenv("DRUID_DS")
-
-	client, err := druid.NewClient("http://" + host + "/druid/v2/")
+	client, err := druid.NewClient("http://" + os.Getenv("DRUID_HOST"))
 
 	if err != nil {
 		fmt.Println("Druid error ", err)
 	}
 
-	table := druidDs.NewTable().SetName(datasource)
+	table := druidDs.NewTable().SetName(os.Getenv("DRUID_DS"))
 	granulation := druidGranularity.NewSimple().SetGranularity(params.Granulation)
 
 	ads := druidAggregation.NewHLLSketchMerge().SetName("uu").SetFieldName("unique")
@@ -97,19 +95,15 @@ func (d DruidController) DruidRequest(params appContext.InputParams) {
 		SetIntervals(intervals).
 		SetFilter(filter)
 
-	fmt.Println("=======")
-	fmt.Println(ts)
-	fmt.Println("=======")
+	var results interface{}
 
-	//q, err := d.Query().Load([]byte(query))
-	//if err != nil {
-	//	log.Fatalf("converting string to query object failed, %s", err)
-	//}
-	//
-	//resp, err := d.Query().Execute(q, &results)
+	_, err = client.Query().Execute(ts, &results)
+
+	if err != nil {
+		log.Fatalf("Execute failed, %s", err)
+	}
 
 	client.Close()
-
 }
 
 func (d DruidController) PrepareParams(r *http.Request) appContext.InputParams {
