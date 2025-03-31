@@ -9,6 +9,9 @@ import (
 	druidDs "github.com/grafadruid/go-druid/builder/datasource"
 	druidFilter "github.com/grafadruid/go-druid/builder/filter"
 	druidGranularity "github.com/grafadruid/go-druid/builder/granularity"
+	"time"
+
+	druidIn "github.com/grafadruid/go-druid/builder/intervals"
 	druidQuery "github.com/grafadruid/go-druid/builder/query"
 	appContext "go-druid-client/context"
 	"net/http"
@@ -51,8 +54,6 @@ func (d DruidController) DruidRequest(params appContext.InputParams) {
 		fmt.Println("Druid error ", err)
 	}
 
-	fmt.Println(client)
-
 	table := druidDs.NewTable().SetName(datasource)
 	granulation := druidGranularity.NewSimple().SetGranularity(params.Granulation)
 
@@ -82,13 +83,23 @@ func (d DruidController) DruidRequest(params appContext.InputParams) {
 
 	filter := druidFilter.NewAnd().SetFields([]druidBuilder.Filter{filterSite, filterBot, filterPos, filterChannel})
 
+	// intervals
+	dateStart := params.DateStartTime
+	dateEnd := params.DateEndTime
+
+	interval := druidIn.NewInterval().SetIntervalWithString(dateStart.Format(time.RFC3339Nano), dateEnd.Format(time.RFC3339Nano))
+	intervals := druidIn.NewIntervals().SetIntervals([]*druidIn.Interval{interval})
+
 	ts := druidQuery.NewTimeseries().
 		SetDataSource(table).
 		SetGranularity(granulation).
 		SetAggregations(a).
+		SetIntervals(intervals).
 		SetFilter(filter)
 
+	fmt.Println("=======")
 	fmt.Println(ts)
+	fmt.Println("=======")
 
 	//q, err := d.Query().Load([]byte(query))
 	//if err != nil {
@@ -109,13 +120,15 @@ func (d DruidController) PrepareParams(r *http.Request) appContext.InputParams {
 	site, _ := strconv.Atoi(r.URL.Query().Get("site"))
 
 	return appContext.InputParams{
-		PmCategory:  pmCategory,
-		Pm:          pm,
-		Site:        site,
-		DateStart:   int32(dateStart),
-		DateEnd:     int32(dateEnd),
-		Report:      r.URL.Query().Get("report"),
-		Granulation: druidGranularity.Day,
-		Channel:     r.URL.Query()["channel[]"],
+		PmCategory:    pmCategory,
+		Pm:            pm,
+		Site:          site,
+		DateStart:     int64(dateStart),
+		DateStartTime: time.Unix(int64(dateStart), 0),
+		DateEnd:       int64(dateEnd),
+		DateEndTime:   time.Unix(int64(dateEnd), 0),
+		Report:        r.URL.Query().Get("report"),
+		Granulation:   druidGranularity.Day,
+		Channel:       r.URL.Query()["channel[]"],
 	}
 }
