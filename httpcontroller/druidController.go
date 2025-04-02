@@ -46,7 +46,7 @@ func (d DruidController) StatDau(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d DruidController) DruidRequest(params appContext.InputParams) {
-	client, err := druid.NewClient("http://" + os.Getenv("DRUID_HOST"))
+	client, err := druid.NewClient("https://" + os.Getenv("DRUID_HOST") + ":" + os.Getenv("DRUID_PORT"))
 
 	if err != nil {
 		fmt.Println("Druid error ", err)
